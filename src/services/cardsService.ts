@@ -161,3 +161,73 @@ function calculateCardBalance(payments, recharges) {
 
     return totalRecharges - totalPayments;
 }
+
+export async function blockCard(cardId: number, password: string) {
+
+    const card = await cardsRepository.findById(cardId);
+    if (!card) {
+        throw {
+            type: "not_found",
+            message: "The card was not found."
+        };
+    }
+
+    if(!card.password) {
+        throw {
+            type: "bad_request",
+            message: "This card was not activated yet."
+        };
+    }
+
+    const verifyPassword = bcrypt.compareSync(password, card.password);
+    if (!verifyPassword) {
+        throw {
+            type: "unauthorized",
+            message: "Wrong password."
+        };
+    }
+
+    if(card.isBlocked) {
+        throw {
+            type: "bad_request",
+            message: "This card is already blocked."
+        };
+    }
+   
+    await cardsRepository.update(cardId, { isBlocked: true })
+}
+
+export async function unblockCard(cardId: number, password: string) {
+
+    const card = await cardsRepository.findById(cardId);
+    if (!card) {
+        throw {
+            type: "not_found",
+            message: "The card was not found."
+        };
+    }
+
+    if(!card.password) {
+        throw {
+            type: "bad_request",
+            message: "This card was not activated yet."
+        };
+    }
+
+    const verifyPassword = bcrypt.compareSync(password, card.password);
+    if (!verifyPassword) {
+        throw {
+            type: "unauthorized",
+            message: "Wrong password."
+        };
+    }
+
+    if(!card.isBlocked) {
+        throw {
+            type: "bad_request",
+            message: "This card is already unblocked."
+        };
+    }
+   
+    await cardsRepository.update(cardId, { isBlocked: false })
+}
