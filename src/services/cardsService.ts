@@ -6,6 +6,8 @@ import bcrypt from "bcrypt";
 import * as cardsRepository from "../repositories/cardsRepository.js";
 import * as companyRepository from "../repositories/companyRepository.js";
 import * as employeeRepository from "../repositories/employeeRepository.js";
+import * as paymentRepository from "../repositories/paymentRepository.js";
+import * as rechargeRepository from "../repositories/rechargeRepository.js";
 
 const cryptr = new Cryptr('secretKey');
 
@@ -121,7 +123,7 @@ export async function activateCard(cardId: number, cvc: string, password: string
 
 function verifyValidCVC(cvc: string, securityCode: string) {
     const decryptedSecurityCode = cryptr.decrypt(securityCode);
-    if(cvc !== decryptedSecurityCode) {
+    if (cvc !== decryptedSecurityCode) {
         throw {
             type: "unauthorized",
             message: "Invalid CVC."
@@ -129,3 +131,33 @@ function verifyValidCVC(cvc: string, securityCode: string) {
     }
 }
 
+export async function getCardTransactions(cardId: number) {
+
+    const card = await cardsRepository.findById(cardId);
+    if (!card) {
+        throw {
+            type: "not_found",
+            message: "The card was not found."
+        };
+    }
+
+    const payments = await paymentRepository.findByCardId(cardId);
+    const recharges = await rechargeRepository.findByCardId(cardId);
+    const balance = calculateCardBalance(payments, recharges);
+
+    return {
+        balance,
+        transactions: payments,
+        recharges
+    }
+}
+
+function calculateCardBalance(payments, recharges) {
+    let totalPayments = 0;
+    let totalRecharges = 0;
+
+    payments.map((item) => totalPayments += item.amount);
+    recharges.map((item) => totalRecharges += item.amount);
+
+    return totalRecharges - totalPayments;
+}
