@@ -14,5 +14,13 @@ export default function errorHandler(error: any, req: Request, res: Response, ne
         return res.status(409).send(error.message);
     }
 
+    if(error.type === "unprocessable_entity") {
+        return res.status(422).send(error.message);
+    }
+    
+    if(error.type === "bad_request") {
+        return res.status(400).send(error.message);
+    }
+
     return res.sendStatus(500);
 }
