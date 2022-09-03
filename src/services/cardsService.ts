@@ -49,7 +49,6 @@ export async function createCard(employeeId: number, type: cardsRepository.Trans
     };
 
     await cardsRepository.insert(cardData);
-    console.log(cardData);
 }
 
 function generateCardNumber() {
