@@ -2,6 +2,7 @@ import { faker } from "@faker-js/faker";
 import dayjs from "dayjs";
 import Cryptr from "cryptr";
 import bcrypt from "bcrypt";
+import customParseFormat from 'dayjs/plugin/customParseFormat.js';
 
 import * as cardsRepository from "../repositories/cardsRepository.js";
 import * as companyRepository from "../repositories/companyRepository.js";
@@ -10,6 +11,8 @@ import * as paymentRepository from "../repositories/paymentRepository.js";
 import * as rechargeRepository from "../repositories/rechargeRepository.js";
 
 const cryptr = new Cryptr('secretKey');
+
+dayjs.extend(customParseFormat);
 
 export async function createCard(employeeId: number, type: cardsRepository.TransactionTypes, APIKey: string) {
 
@@ -78,11 +81,10 @@ function generateCardholderName(fullName: string) {
 }
 
 function generateExpirationDate() {
-    return dayjs().add(5, "year").format("MM-YY");
+    return dayjs().add(5, "year").format("MM/YY");
 }
 
 export async function activateCard(cardId: number, cvc: string, password: string) {
-    const today = dayjs().format("MM-YY");
 
     if (password.length > 0 && password.length < 4) {
         throw {
@@ -92,19 +94,13 @@ export async function activateCard(cardId: number, cvc: string, password: string
     }
 
     const card = await cardsRepository.findById(cardId);
+
     if (!card) {
         throw {
             type: "not_found",
             message: "The card was not found."
         };
     }
-
-    /* if (dayjs(today).isAfter(dayjs(card.expirationDate))) {
-        throw {
-            type: "bad_request",
-            message: "This card is already expired."
-        };
-    } */
 
     if (card.password) {
         throw {
@@ -113,11 +109,22 @@ export async function activateCard(cardId: number, cvc: string, password: string
         };
     }
 
+    verifyCardExpired(card.expirationDate);
     verifyValidCVC(cvc, card.securityCode);
 
     const encryptedPassword = bcrypt.hashSync(password, 10);
 
     await cardsRepository.update(cardId, { password: encryptedPassword })
+}
+
+export function verifyCardExpired(expirationDate: string) {
+
+    if (dayjs().isAfter(dayjs(expirationDate, "MM/YY"))) {
+        throw {
+            type: "bad_request",
+            message: "This card is already expired."
+        };
+    }
 }
 
 function verifyValidCVC(cvc: string, securityCode: string) {
@@ -171,12 +178,14 @@ export async function blockCard(cardId: number, password: string) {
         };
     }
 
-    if(!card.password) {
+    if (!card.password) {
         throw {
             type: "bad_request",
             message: "This card was not activated yet."
         };
     }
+
+    verifyCardExpired(card.expirationDate);
 
     const verifyPassword = bcrypt.compareSync(password, card.password);
     if (!verifyPassword) {
@@ -186,13 +195,13 @@ export async function blockCard(cardId: number, password: string) {
         };
     }
 
-    if(card.isBlocked) {
+    if (card.isBlocked) {
         throw {
             type: "bad_request",
             message: "This card is already blocked."
         };
     }
-   
+
     await cardsRepository.update(cardId, { isBlocked: true })
 }
 
@@ -206,12 +215,14 @@ export async function unblockCard(cardId: number, password: string) {
         };
     }
 
-    if(!card.password) {
+    if (!card.password) {
         throw {
             type: "bad_request",
             message: "This card was not activated yet."
         };
     }
+
+    verifyCardExpired(card.expirationDate);
 
     const verifyPassword = bcrypt.compareSync(password, card.password);
     if (!verifyPassword) {
@@ -221,12 +232,12 @@ export async function unblockCard(cardId: number, password: string) {
         };
     }
 
-    if(!card.isBlocked) {
+    if (!card.isBlocked) {
         throw {
             type: "bad_request",
             message: "This card is already unblocked."
         };
     }
-   
+
     await cardsRepository.update(cardId, { isBlocked: false })
 }

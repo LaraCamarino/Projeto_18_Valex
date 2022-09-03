@@ -4,6 +4,7 @@ import * as cardsRepository from "../repositories/cardsRepository.js";
 import * as businessRepository from "../repositories/businessRepository.js";
 import * as paymentRepository from "../repositories/paymentRepository.js";
 import * as rechargeRepository from "../repositories/rechargeRepository.js";
+import * as cardsService from "../services/cardsService.js";
 
 export async function makePurchase(cardId: number, password: string, businessId: number, amount: number) {
 
@@ -28,6 +29,8 @@ export async function makePurchase(cardId: number, password: string, businessId:
             message: "This card is blocked."
         };
     }
+
+    cardsService.verifyCardExpired(card.expirationDate);
 
     const verifyPassword = bcrypt.compareSync(password, card.password);
     if (!verifyPassword) {
