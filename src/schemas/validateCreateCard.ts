@@ -9,7 +9,6 @@ export default async function validateCreateCard(req: Request, res: Response, ne
     });
     const validation = createCardSchema.validate(req.body, { abortEarly: false });
     if (validation.error) {
-        console.log(validation.error.details)
         throw {
             type: "unprocessable_entity",
             message: `${validation.error.details[0].message}`

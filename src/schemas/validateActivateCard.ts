@@ -9,7 +9,6 @@ export default async function validateActivateCard(req: Request, res: Response, 
     });
     const validation = activateCardSchema.validate(req.body, { abortEarly: false });
     if (validation.error) {
-        console.log(validation.error.details)
         throw {
             type: "unprocessable_entity",
             message: `${validation.error.details[0].message}`
