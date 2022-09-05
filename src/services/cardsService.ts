@@ -10,7 +10,7 @@ import * as employeeRepository from "../repositories/employeeRepository.js";
 import * as paymentRepository from "../repositories/paymentRepository.js";
 import * as rechargeRepository from "../repositories/rechargeRepository.js";
 
-const cryptr = new Cryptr('secretKey');
+const cryptr = new Cryptr(process.env.CRYPT_SECRET_KEY);
 
 dayjs.extend(customParseFormat);
 
@@ -36,7 +36,7 @@ export async function createCard(employeeId: number, type: cardsRepository.Trans
     if (verifyExistingCard) {
         throw {
             type: "conflict",
-            message: "This employee already has a card with that type."
+            message: `This employee already has a card with the type "${type}".`
         };
     }
 
@@ -86,10 +86,10 @@ function generateExpirationDate() {
 
 export async function activateCard(cardId: number, cvc: string, password: string) {
 
-    if (password.length > 0 && password.length < 4) {
+    if (password.length !== 4) {
         throw {
             type: "bad_request",
-            message: "Invalid password."
+            message: "The password must be exactly 4 characters long."
         };
     }
 
@@ -129,6 +129,7 @@ export function verifyCardExpired(expirationDate: string) {
 
 function verifyValidCVC(cvc: string, securityCode: string) {
     const decryptedSecurityCode = cryptr.decrypt(securityCode);
+
     if (cvc !== decryptedSecurityCode) {
         throw {
             type: "unauthorized",
